@@ -10,16 +10,17 @@ class UserInputNode(Node):
         # Wait until the service is available
         while not self.client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for the service to become available...')
+        self.user_prompt()
 
-        self.timer = self.create_timer(1.0, self.user_prompt)
+        
 
     def user_prompt(self):
         user_input = input("Enter a prompt: ")
 
         # Call the service
-        request = Message.Request()
-        request.request = user_input
-        self.future = self.client.call_async(request)
+        self.req = Message.Request()
+        self.req.request = user_input
+        self.future = self.client.call_async(self.req)
         self.future.add_done_callback(self.service_response_callback)
 
     def service_response_callback(self, future):
@@ -28,6 +29,7 @@ class UserInputNode(Node):
             self.get_logger().info(f'Service response: "{response.response}"')
         except Exception as e:
             self.get_logger().error(f'Service call failed: {e}')
+        self.user_prompt()
 
 def main(args=None):
     rclpy.init(args=args)
@@ -36,8 +38,8 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
-
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 if __name__ == '__main__':
     main()
