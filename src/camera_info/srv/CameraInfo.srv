@@ -1,0 +1,4 @@
+int64 position
+string path
+---
+string camera_response
