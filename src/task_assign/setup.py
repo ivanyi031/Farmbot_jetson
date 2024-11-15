@@ -20,8 +20,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-	    'service = task_assign.string_service_node:main',
-        'client = task_assign.user_input_node:main',
+	    'task_node = task_assign.string_service_node:main',
+	     'camera_node = task_assign.camera_node:main',
+        'input_node = task_assign.user_input_node:main',
+	#'client = task_assign.string_service_node:main',
+
         ],
     },
 )

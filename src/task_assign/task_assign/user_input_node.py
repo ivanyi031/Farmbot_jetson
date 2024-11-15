@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sent_message.srv import Message
 
+
 class UserInputNode(Node):
     def __init__(self):
         super().__init__('user_input_node')
