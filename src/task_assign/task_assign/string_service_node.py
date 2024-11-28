@@ -28,9 +28,14 @@ class StringServiceNode(Node):
         sub_request = CameraInfo.Request()
         if request.request.lower() == 'task1':
             sub_request.path = self.create_folder()
-            messages = [(100, 750, 100, 0,1), (400, 1050,100, 1,1), (700, 750, 100, 2,1), (400, 450, 100, 3,1)]
+            #(400,750)
+            messages = [(76, 615, 100, 0,1), (468, 941,100, 1,1), (794, 550, 100, 2,1), (403, 223, 100, 3,1),(435, 582, 500,4,1)]
         elif request.request.lower() == 'calibrate':
             messages=[(0,0,0,0,0)]
+        else:
+            response.response = "wrong message"
+            return response
+
             
             
             # Task 1: Start a specific action
@@ -55,13 +60,15 @@ class StringServiceNode(Node):
             
             self.get_logger().info(f'Finish: "{request.request}"')
         response.response = f'You sent: {request.request}'
-        str_val="Done"
-        byte_val=str_val.encode()
-        sock.sendto(byte_val, (esp32_ip, port))
+        if(task !=0):
+            str_val="Done"
+            byte_val=str_val.encode()
+            sock.sendto(byte_val, (esp32_ip, port))
         return response  
     def send_message(self,x, y, z, esp_pos, task):
     # Format the message as a string
-        message = f"({x},{y},{z},{task})\n"
+        arduino.readall()
+        message = f"({x},{y},{z},{esp_pos},{task})\n"
         farmbot_reach=False
         esp32_reach=False#test
     # Send the message to the Arduino
@@ -70,20 +77,23 @@ class StringServiceNode(Node):
         byte_val = str_val.encode()
         sock.sendto(byte_val, (esp32_ip, port))
 
-    # Wait for the "Done" message from Arduino
-        while not farmbot_reach and not esp32_reach:
+        while not farmbot_reach: #and not esp32_reach
             # Read data from Arduino
-            if not farmbot_reach:
                 response = arduino.readline().decode().strip()
                 if response == "Done":
                     farmbot_reach=True
                     #self.get_logger().info("Reach Position")
                     print("Farmbot Done")
-            if not esp32_reach:
-                data,server = sock.recvfrom(1024)
-                if data.decode()=="Done":
+        if task !=0:
+            data,server = sock.recvfrom(1024)
+            if data.decode()=="Done":
                     print("Esp Done")
                     esp32_reach=True
+    # Wait for the "Done" message from Arduino
+        
+        
+                
+                
         
         return
     def create_folder(self):
