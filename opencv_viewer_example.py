@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 import os
 from datetime import datetime
+import time
 
 def create_folder():
     base_dir = os.path.expanduser("~/Plant_image")
@@ -43,6 +44,20 @@ if not found_rgb:
 config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 15)
 config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 15)
 
+
+
+
+
+
+
+
+
+config.enable_stream(rs.stream.accel, rs.format.motion_xyz32f)  # acceleration
+# Gyroscope available FPS: {200,400}Hz
+config.enable_stream(rs.stream.gyro, rs.format.motion_xyz32f)  # gyroscope
+
+
+
 # Start streaming
 pipeline.start(config)
 
@@ -51,8 +66,9 @@ align = rs.align(align_to)
 cnt =0
 
 try:
-    while True:
-
+    start_time=time.time()
+    end_time=time.time()
+    while end_time-start_time<5:
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
         aligned_frames = align.process(frames)
@@ -64,29 +80,27 @@ try:
         if not depth_frame or not color_frame and cnt<1000:
              cnt+=1
              continue
-        break
+        # Convert images to numpy arrays
+        depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        color_image = np.asanyarray(aligned_color_frame.get_data())
+
+        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+
+        depth_colormap_dim = depth_colormap.shape
+        color_colormap_dim = color_image.shape
+
+
+        # Show images
         
-    
+        cv2.namedWindow('Color', cv2.WINDOW_AUTOSIZE)
+        cv2.imshow('Color', color_image)
 
-    # Convert images to numpy arrays
-    depth_image = np.asanyarray(aligned_depth_frame.get_data())
-    color_image = np.asanyarray(aligned_color_frame.get_data())
-
-    # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-    depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-
-    depth_colormap_dim = depth_colormap.shape
-    color_colormap_dim = color_image.shape
-
-
-    # Show images
-    
-    cv2.namedWindow('Color', cv2.WINDOW_AUTOSIZE)
-    cv2.imshow('Color', color_image)
-
-    cv2.namedWindow('Depth', cv2.WINDOW_AUTOSIZE)
-    cv2.imshow('Depth', depth_image)
-    cv2.waitKey(0)
+        cv2.namedWindow('Depth', cv2.WINDOW_AUTOSIZE)
+        cv2.imshow('Depth', depth_image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        end_time=time.time()
     folder_path = create_folder()
     cv2.imwrite(folder_path+'/color.jpg',color_image)
 
