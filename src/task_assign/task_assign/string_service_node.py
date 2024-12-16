@@ -29,9 +29,14 @@ class StringServiceNode(Node):
         if request.request.lower() == 'task1':
             sub_request.path = self.create_folder()
             #(400,750)
-            messages = [(76, 615, 100, 0,1), (468, 941,100, 1,1), (794, 550, 100, 2,1), (403, 223, 100, 3,1),(435, 582, 500,4,1)]
+            messages = [(30, 610 ,280, 0,1), (397, 932,280, 1,1), (716, 574, 280, 2,1), (352, 256, 280, 3,1),(340, 614, 193,4,1)]
+            #messages = [(76, 615, 500, 0,1), (468, 941,500, 1,1), (794, 550, 500, 2,1), (403, 223, 500, 3,1),(345, 615, 300,4,1)]
         elif request.request.lower() == 'calibrate':
-            messages=[(0,0,0,0,0)]
+            messages=[(0,0,0,0,-1)]
+        elif request.request.lower() == 'tracking':
+            self.tracking_motor()
+            response.response = "done tracking"
+            return response
         else:
             response.response = "wrong message"
             return response
@@ -54,13 +59,13 @@ class StringServiceNode(Node):
             x, y, z, esp_pos,task = msg
             self.send_message(x, y, z, esp_pos,task)
             sub_request.position = esp_pos
-            if task != 0:
+            if task != -1:
                 future = self.sub_client.call_async(sub_request)
                 rclpy.spin_until_future_complete(self.sub_node,future)
             
             self.get_logger().info(f'Finish: "{request.request}"')
         response.response = f'You sent: {request.request}'
-        if(task !=0):
+        if(task != -1):
             str_val="Done"
             byte_val=str_val.encode()
             sock.sendto(byte_val, (esp32_ip, port))
@@ -80,24 +85,36 @@ class StringServiceNode(Node):
         while not farmbot_reach: #and not esp32_reach
             # Read data from Arduino
                 response = arduino.readline().decode().strip()
-                if response == "Done":
-                    farmbot_reach=True
-                    #self.get_logger().info("Reach Position")
-                    print("Farmbot Done")
-        if task !=0:
+                if(len(response)):
+                    print(response)
+                    if response == "Done":
+                        farmbot_reach=True
+                        #self.get_logger().info("Reach Position")
+                        print("Farmbot Done")
+        if task !=-1:
             data,server = sock.recvfrom(1024)
             if data.decode()=="Done":
                     print("Esp Done")
                     esp32_reach=True
     # Wait for the "Done" message from Arduino
         
-        
-                
-                
-        
+    def tracking_motor(self):
+        arduino.readall()
+        message = "(0,0,0,0,0)\n"
+        arduino.write(message.encode())
+        #time.sleep(5)
+        while(1):
+            try:
+                response = arduino.readline().decode().strip()
+                if(len(response)):
+                    print(response)
+            except KeyboardInterrupt:
+                arduino.write("Done\n".encode())
+                print("tracking over")
+                break;       
         return
     def create_folder(self):
-        base_dir = os.path.expanduser("~/Plant_image")
+        base_dir = os.path.expanduser("~/Camera_calibration")#("~/Plant_image")
         # Generate folder name based on current date, hour, and minute
         folder_name = datetime.now().strftime("%Y%m%d_%H%M")
         full_path = os.path.join(base_dir, folder_name)
